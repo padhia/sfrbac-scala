@@ -1,0 +1,141 @@
+config:
+  secadm: "RL_{env}_SECADMIN"
+  dbadm: "RL_{env}_SYSADMIN"
+  database: "{db}_{env}"
+  schema: "{sch}"
+  warehouse: "WH_{env}_{wh}"
+  acc_role: "{sch}_{acc}"
+  wacc_role: "_WH_{env}_{wh}_{acc}"
+  fn_role: "RL_{env}_{role}"
+  app_id: "APP_{env}_{app}"
+
+imports:
+  CUST:
+    provider: CUSTP
+    share: DATA_SHR
+    roles:
+      - DBA
+      - DEVLOPER
+
+  PARTNER:
+    provider: PARTNER_ACCT
+    share: PARTNER_DB
+    roles:
+      - DBA
+      - DEVLOPER
+      - ETL
+
+databases:
+  EDW:
+    data_retention_time_in_days: 10
+    comment: EDW core database
+    tags:
+      DEPT: payroll
+      SHIFT: day
+    schemas:
+      CUSTOMER: &sch_defaults
+        managed: true
+        data_retention_time_in_days: 10
+        acc_roles: &sch_acc_defaults
+          R:
+            database: [usage, monitor]
+            schema: [usage, monitor]
+            table: [select, references]
+            view: [select]
+          RW:
+            role: [R]
+            table: [insert, update, truncate, delete]
+          RWC:
+            role: [RW]
+            schema: ["create table", "create view", "create procedure"]
+
+  BI:
+    data_retention_time_in_days: 10
+    comment: Analytics database
+    schemas:
+      CUSTOMER:
+        <<: *sch_defaults
+        transient: true
+
+warehouses:
+  LOAD: &wh_defaults
+    warehouse_size: SMALL
+    initially_suspended: true
+    auto_suspend: 300
+    auto_resume: true
+    min_cluster_count: 1
+    max_cluster_count: 1
+    scaling_policy: STANDARD
+    statement_timeout_in_seconds: 3600
+    statement_queued_timeout_in_seconds: 300
+    acc_roles:
+      R:
+        warehouse: [usage]
+      RW:
+        role: [R]
+        warehouse: [operate]
+      RWC:
+        role: [RW]
+        warehouse: [monitor, modify]
+
+  ETL:
+    <<: *wh_defaults
+    warehouse_size: X-LARGE
+    max_cluster_count: 2
+
+  BI_S:
+    <<:  *wh_defaults
+    warehouse_size: MEDIUM
+    max_cluster_count: 5
+
+  BI_L:
+    <<: *wh_defaults
+    warehouse_size: 2X-LARGE
+    max_cluster_count: 2
+
+roles:
+  DBA:
+    comment: Database Administrators
+    acc_roles:
+      EDW.CUSTOMER: RWC
+      BI.CUSTOMER: RWC
+      LOAD: RWC
+      ETL: RWC
+      BI_S: RWC
+      BI_L: RWC
+
+  DEVELOPER:
+    comment: Developers
+    acc_roles:
+      EDW.CUSTOMER: R
+      BI.CUSTOMER: R
+      LOAD: R
+      ETL: R
+      BI_S: R
+      BI_L: R
+    env_acc_roles:
+      DEV: &dev_permissions
+        EDW.CUSTOMER: RWC
+        BI.CUSTOMER: RWC
+        LOAD: RW
+      QA: *dev_permissions
+
+  ETL:
+    comment: ETL Application
+    acc_roles:
+      EDW.CUSTOMER: RW
+      LOAD: R
+      ETL: R
+
+users:
+  JDOE:
+    comment: John Doe
+    roles:
+      - DBA
+      - SYSINFO
+
+apps:
+  ETL:
+    comment: ETL application ID
+    roles:
+      - ETL
