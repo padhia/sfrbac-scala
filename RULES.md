@@ -1,8 +1,8 @@
 # Rules File
 
-Rules file is a `yaml` or `json` file that is used by `sfenv` utility to generate DDLs and DCLs. A rule file contains one YAML/JSON object with several attributes (*sections*) to allow fine-grained creation of objects, roles and permissions.
+Rules file is a `yaml` or a `json` file that is used by `sfenv` utility to generate Snowflake DDLs and DCLs. A *rules-file* consists of a configuration to help derive names, object definitions for one more *object types* (called *sections*), roles and permissions.
 
-Sections (or attributes of the top-level object), are documented below. Only the `config` section is required, any other section may be omitted if not needed.
+All available *sections* are documented below. Only the `config` section is required, all other sections may be omitted when not required.
 
 - **`config`**
 - `imports`
@@ -12,18 +12,18 @@ Sections (or attributes of the top-level object), are documented below. Only the
 - `users`
 - `apps`
 
-Although the syntax doesn't explicitly list, but all object and role definitions accept `tags` mapping object containig a *tag* and a *value*
+Although object properties listed below don't explicitly include them, but all object and role definitions accept `tags` *mapping object* consisting of *tag-name* and a *tag-value*
 
 ## `config`
 
-A YAML/JSON object that controls naming of various database objects such as databases, schemas, roles etc. This object must have all attributes listed in the following example:
+A YAML/JSON object that controls naming of database objects. This section must list all attributes shown in the following example:
 
 **Example**:
 
 ```yaml
 config:
   secadm: "RL_{env}_SECADMIN"
-  sysadm: "RL_{env}_SYSADMIN"
+  dbadm: "RL_{env}_SYSADMIN"
   database: "{db}_{env}"
   schema: "{sch}"
   warehouse: "WH_{env}_{wh}"
@@ -35,11 +35,13 @@ config:
 
 Notes:
 
-- Value for each attribute is a template to derive corresponding database object name by substituting placeholder (names enclosed in `{}`).
-- A special placeholder, named `env`, lets one rule file to generate different sets of SQL statements corresponding to different environments.
+- Each attribute in `config` is a *template* to derive corresponding object name. Names are derived by substituting *placeholders* (variables enclosed in `{}`).
+- A special placeholder, named `env`, lets one rule file to generate different sets of SQL statements for different environments.
 - Value for `env` is supplied at runtime whereas values for all other placeholder names are taken from other sections within the rules file.
-- Access role names are derived using the placeholders of the resource they control.
-- Generated DDLs and DCLs contain appropriate `use role ...` statements to set either `secadm` and `sysadm`, which are security and system admin roles respectively. `secadm` manages other roles and permissions, whereas `sysadm` owns all database resources in an environment.
+- Access role names are derived using the placeholders of the resource type they control.
+- Generated DDLs and DCLs will include appropriate `use role <secadm>|<dbadm>` statements.
+  - `<secadm>` is security administrator ID for an environment and controls permissions
+  - `<dbadm>` is resource owner and owns the created objects
 
 ## `imports`
 
@@ -56,7 +58,6 @@ imports:
       - DBA
       - DEVLOPER
 ```
-### imported share
 An imported share is a YAML/JSON object that has following attributes:
 
 - **`provider`**: provider account name
@@ -107,7 +108,7 @@ A database is a YAML/JSON object that has following attributes:
 - `transient`: `true` if this is a transient database
 - `comment`: comment that'll be part of the generated DDL
 - `schemas`: A YAML/JSON list containing one or more schema YAML/JSON objects
-- `...`: Any other attributes are generated as part of the DDL
+- `...`: Any other attributes are passed through and become part of the DDL
 
 ### schema
 A schema is a YAML/JSON object that defines a database schema and has following attributes:
@@ -116,7 +117,7 @@ A schema is a YAML/JSON object that defines a database schema and has following 
 - `managed`: `true` if this is a managed schema
 - `comment`: comment that'll be part of the generated DDL
 - `acc_roles`: A YAML/JSON object containing access role definitions to create
-- `...`: Any other attributes are generated as part of the DDL
+- `...`: Any other attributes are passed through and become part of the DDL
 
 ## `warehouses`
 
@@ -125,35 +126,33 @@ A schema is a YAML/JSON object that defines a database schema and has following 
 **Example**
 
 ```yaml
-LOAD: &wh_defaults
-  warehouse_size: SMALL
-  initially_suspended: true
-  auto_suspend: 300
-  auto_resume: true
-  acc_roles:
-    R:
-      warehouse: [usage]
-    RW:
-      role: [R]
-      warehouse: [operate]
-    RWC:
-      role: [RW]
-      warehouse: [monitor, modify]
-
-ETL:
-  <<: *wh_defaults
-  warehouse_size: X-LARGE
+warehouses:
+  LOAD: &wh_defaults
+    warehouse_size: SMALL
+    initially_suspended: true
+    auto_suspend: 300
+    auto_resume: true
+    acc_roles:
+      R:
+        warehouse: [usage]
+      RW:
+        role: [R]
+        warehouse: [operate]
+      RWC:
+        role: [RW]
+        warehouse: [monitor, modify]
+  ETL:
+    <<: *wh_defaults
+    warehouse_size: X-LARGE
 ```
-
-### warehouse
 
 A warehouse is a YAML/JSON object with following attributes:
 - `comment`: comment that'll be part of the generated DDL
 - `acc_roles`: A YAML/JSON object containing access role definitions to create
-- `...`: Any other attributes are generated as part of the DDL
+- `...`: Any other attributes are passed through and become part of the DDL
 
 ## access roles
-An access role is created for either a schema or a warehouse. An access role is specified as a YAML/JSON object with access role name as key and attribute being another YAML/JSON object that encodes a list of permissions for each database object type.
+An access role is created for each schema or a warehouse. An access role is specified as a YAML/JSON object with access role name as key and attribute being another YAML/JSON object that encodes a list of permissions for each database object type.
 
 **Example**
 
@@ -168,35 +167,56 @@ RW:
   table: [insert, update, truncate, delete]
 ```
 
-## `roles`
-A YAML/JSON object containing one or more *functional role* names and their definitions
+The above example when specified for a schema will
+- create two database roles, corresponding to `R` and `RW`
+- each access role specifies object type and permissions mapping
+- permissions are list of SQL privileges
 
-### functional role
+## `roles`
+A YAML/JSON object containing one or more *functional role* names and their properties
+
+### functional roles
 
 A functional role has following attributes:
 - `comment`: comment that'll be part of the generated DDL
-- `acc_roles`: A YAML/JSON list containing *references* to a mix of schema or warehouse access roles
-- `env_acc_roles`: Allows specifying access role references per environment
+- `acc_roles`: A YAML/JSON list containing *references* to schema and/or warehouse access roles
+- `env_acc_roles`: Allows overriding access roles for specific environments
 
-### access role reference
-An access role reference is a YAML/JSON object that has one of the following set of attributes:
+**Example**
 
-**Option 1**
-- `database`: database name
-- `schema`: schema name
-- `acc`: access role name
-
-**Option 2**
-- `warehouse`: warehouse name
-- `acc`: access role name
+```yaml
+roles:
+  DEVELOPER:
+    comment: Developers
+    acc_roles:
+      EDW.CUSTOMER: R
+      BI.CUSTOMER: R
+      LOAD: R
+      ETL: R
+    env_acc_roles:
+      DEV: &dev_permissions
+        EDW.CUSTOMER: RWC
+        BI.CUSTOMER: RWC
+        LOAD: RW
+      QA: *dev_permissions
+```
 
 ## `users`
-A YAML/JSON object containing one or more *user* names and their definitions
+A YAML/JSON object that describes Snowflake user IDs
 
-### user
-A YAML/JSON object with following attributes:
+**Example**
+
+```yaml
+users:
+  JDOE:
+    comment: John Doe
+    roles:
+      - DBA
+      - SYSINFO
+```
+A *user* is an object mapping of name and its properties. Valid properties
 - `comment`: comment that'll be part of the generated DDL
 - `roles`: A YAML/JSON list containing names of the functional roles to be assigned to this user ID
 
 ## `apps`
-A YAML/JSON object, very similar to `users`, except the IDs are created per environment.
+Similar to `users` above except application IDs are created and are specific to an environment.
