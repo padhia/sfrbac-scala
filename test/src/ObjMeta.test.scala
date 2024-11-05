@@ -2,19 +2,19 @@ package sfenv
 package envr
 import fs2.*
 
-import munit.FunSuite
 import PropVal.*
+import munit.FunSuite
 
 class ObjMetaTests extends FunSuite:
   val testProps = Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(2), "BOOL_PROP" -> Bool(true))
-  val comment = Some("A sample comment")
-  val tags = Map("tag1" -> "tag value 1", "tag2" -> "tag value 2")
-  val sysAdm = RoleName.Account("ENVADMIN")
+  val comment   = Some("A sample comment")
+  val tags      = Map("tag1" -> "tag value 1", "tag2" -> "tag value 2")
+  val sysAdm    = RoleName.Account("ENVADMIN")
 
   def sqls(xs: Stream[Pure, Sql]) = xs.flatMap(_.stream(sysAdm, true)).compile.toList
 
   test("toString - props"):
-    val testOM = ObjMeta(testProps)
+    val testOM   = ObjMeta(testProps)
     val expected = " STR_PROP = STR_VAL NUM_PROP = 2 BOOL_PROP = TRUE"
 
     assert(clue(testOM.toString()) == expected)
@@ -31,12 +31,18 @@ class ObjMetaTests extends FunSuite:
     assert(clue(testOM.toString()) == expected)
 
   test("alter - comment"):
-    val oldComment = ObjMeta(comment = Some("An old comment"))
-    val newComment = ObjMeta(comment = Some("A new comment"))
+    val oldComment  = ObjMeta(comment = Some("An old comment"))
+    val newComment  = ObjMeta(comment = Some("A new comment"))
     val newComment2 = ObjMeta(comment = None)
 
-    assert(clue(sqls(newComment.alter("SCHEMA", "DB1.SCH1", oldComment))) == List("ALTER SCHEMA IF EXISTS DB1.SCH1 SET COMMENT = 'A new comment'"))
-    assert(clue(sqls(newComment2.alter("SCHEMA", "DB1.SCH1", oldComment))) == List("ALTER SCHEMA IF EXISTS DB1.SCH1 UNSET COMMENT"))
+    assert(
+      clue(sqls(newComment.alter("SCHEMA", "DB1.SCH1", oldComment))) == List(
+        "ALTER SCHEMA IF EXISTS DB1.SCH1 SET COMMENT = 'A new comment'"
+      )
+    )
+    assert(
+      clue(sqls(newComment2.alter("SCHEMA", "DB1.SCH1", oldComment))) == List("ALTER SCHEMA IF EXISTS DB1.SCH1 UNSET COMMENT")
+    )
 
   test("alter - props"):
     val oldOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(3), "BOOL_PROP" -> Bool(true)))

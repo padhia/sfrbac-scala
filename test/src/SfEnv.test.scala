@@ -5,7 +5,6 @@ package test
 import fs2.*
 
 import munit.FunSuite
-
 import sfenv.Main.toRbac
 
 class RbacTests extends FunSuite:
@@ -20,7 +19,7 @@ class RbacTests extends FunSuite:
     assert(clue(ddl) == Right(expected))
 
   test("drop"):
-    val ddl = rule1.toRbac("DEV").map(x => x.unCreate.flatMap(_.stream(x.sysAdm)).toList)
+    val ddl      = rule1.toRbac("DEV").map(x => x.unCreate.flatMap(_.stream(x.sysAdm)).toList)
     val expected = List("--DROP DATABASE IF EXISTS EDW_DEV")
     assert(clue(ddl) == Right(expected))
 

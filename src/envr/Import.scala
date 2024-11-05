@@ -25,8 +25,9 @@ object Import:
 
       override def alter[F[_]](old: Import) =
         if shr.provider == old.provider && shr.share == old.share then
-          Stream.emits(shr.roles.merge(old.roles)).collect:
-            case (Some(n), None) => Sql.ObjGrant("DATABASE", shr.name, n, priv)
-            case (None, Some(o)) => Sql.ObjGrant("DATABASE", shr.name, o, priv, revoke = true)
-        else
-          old.unCreate ++ create
+          Stream
+            .emits(shr.roles.merge(old.roles))
+            .collect:
+              case (Some(n), None) => Sql.ObjGrant("DATABASE", shr.name, n, priv)
+              case (None, Some(o)) => Sql.ObjGrant("DATABASE", shr.name, o, priv, revoke = true)
+        else old.unCreate ++ create

@@ -11,11 +11,13 @@ class SchemaTests extends FunSuite:
   import SchemaTests.*
 
   test("create"):
-    val ddl = rule1.toRbac("DEV").map(rbac =>
-      val db = rbac.databases(0)
-      given SqlObj[Schema] = Schema.sqlObj(db.name)
-      db.schemas(0).create.flatMap(_.stream(rbac.sysAdm)).toList
-    )
+    val ddl = rule1
+      .toRbac("DEV")
+      .map: rbac =>
+        val db               = rbac.databases(0)
+        given SqlObj[Schema] = Schema.sqlObj(db.name)
+        db.schemas(0).create.flatMap(_.stream(rbac.sysAdm)).toList
+
     val expected = List(
       "CREATE SCHEMA IF NOT EXISTS EDW_DEV.CUSTOMER WITH MANAGED ACCESS DATA_RETENTION_TIME_IN_DAYS = 10",
       "CREATE DATABASE ROLE IF NOT EXISTS EDW_DEV.CUSTOMER_R",
@@ -34,11 +36,13 @@ class SchemaTests extends FunSuite:
     assert(clue(ddl) == Right(expected))
 
   test("drop"):
-    val ddl = rule1.toRbac("DEV").map(rbac =>
-      val db = rbac.databases(0)
-      given SqlObj[Schema] = Schema.sqlObj(db.name)
-      db.schemas(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
-    )
+    val ddl = rule1
+      .toRbac("DEV")
+      .map: rbac =>
+        val db               = rbac.databases(0)
+        given SqlObj[Schema] = Schema.sqlObj(db.name)
+        db.schemas(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
+
     val expected = List(
       "DROP DATABASE ROLE IF EXISTS EDW_DEV.CUSTOMER_R",
       "DROP DATABASE ROLE IF EXISTS EDW_DEV.CUSTOMER_RW",
@@ -53,9 +57,9 @@ class SchemaTests extends FunSuite:
         curr <- rule2.toRbac("DEV")
         prev <- rule1.toRbac("DEV")
       yield {
-        val db = curr.databases(0)
-        val currSch = curr.databases(0).schemas(0)
-        val prevSch = prev.databases(0).schemas(0)
+        val db               = curr.databases(0)
+        val currSch          = curr.databases(0).schemas(0)
+        val prevSch          = prev.databases(0).schemas(0)
         given SqlObj[Schema] = Schema.sqlObj(db.name)
         currSch.alter(prevSch).flatMap(_.stream(curr.sysAdm)).toList
       }

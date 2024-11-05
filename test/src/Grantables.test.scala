@@ -1,17 +1,18 @@
 package sfenv
 package envr
 
-import munit.FunSuite
 import fs2.*
+
 import Grantables.*
+import munit.FunSuite
 
 class GrantablesTests extends FunSuite:
-  val of = "TABLE"
-  val to = "DB1.SCH1"
+  val of      = "TABLE"
+  val to      = "DB1.SCH1"
   val grantee = RoleName.Database("DB1", "SCH1_RW")
-  val ps = Privileges(List("SELECT", "INSERT"))
-  val rs = Roles(List(RoleName.Database("DB1", "SCH1_R")))
-  val envAdm = RoleName.Account("ENVADMIN")
+  val ps      = Privileges(List("SELECT", "INSERT"))
+  val rs      = Roles(List(RoleName.Database("DB1", "SCH1_R")))
+  val envAdm  = RoleName.Account("ENVADMIN")
 
   def sqls(xs: Stream[Pure, Sql]) = xs.flatMap(_.stream(envAdm, true)).compile.toList
 

@@ -5,17 +5,18 @@ package test
 import fs2.*
 
 import munit.FunSuite
-
 import sfenv.Main.toRbac
 
 class DatabaseTests extends FunSuite:
   import DatabaseTests.*
 
   test("create"):
-    val ddl = rule1.toRbac("DEV").map(rbac =>
-      given SqlObj[Database] = Database.sqlObj(rbac.secAdm)
-      rbac.databases(0).create.flatMap(_.stream(rbac.sysAdm)).toList
-    )
+    val ddl = rule1
+      .toRbac("DEV")
+      .map: rbac =>
+        given SqlObj[Database] = Database.sqlObj(rbac.secAdm)
+        rbac.databases(0).create.flatMap(_.stream(rbac.sysAdm)).toList
+
     val expected = List(
       "CREATE DATABASE IF NOT EXISTS EDW_DEV DATA_RETENTION_TIME_IN_DAYS = 10 COMMENT = 'EDW core database'",
       "GRANT CREATE DATABASE ROLE, USAGE ON DATABASE EDW_DEV TO ROLE RL_DEV_SECADMIN"
@@ -23,10 +24,12 @@ class DatabaseTests extends FunSuite:
     assert(clue(ddl) == Right(expected))
 
   test("drop"):
-    val ddl = rule1.toRbac("DEV").map(rbac =>
-      given SqlObj[Database] = Database.sqlObj(rbac.secAdm)
-      rbac.databases(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
-    )
+    val ddl = rule1
+      .toRbac("DEV")
+      .map: rbac =>
+        given SqlObj[Database] = Database.sqlObj(rbac.secAdm)
+        rbac.databases(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
+
     val expected = List("--DROP DATABASE IF EXISTS EDW_DEV")
     assert(clue(ddl) == Right(expected))
 
@@ -36,8 +39,8 @@ class DatabaseTests extends FunSuite:
         curr <- rule2.toRbac("DEV")
         prev <- rule1.toRbac("DEV")
       yield {
-        val currDb = curr.databases(0)
-        val prevDb = prev.databases(0)
+        val currDb             = curr.databases(0)
+        val prevDb             = prev.databases(0)
         given SqlObj[Database] = Database.sqlObj(curr.secAdm)
         currDb.alter(prevDb).flatMap(_.stream(curr.sysAdm)).toList
       }

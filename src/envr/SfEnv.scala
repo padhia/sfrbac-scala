@@ -6,7 +6,7 @@ import fs2.Stream
 import Sql.usingRole
 import SqlOperable.given
 
-type ObjType  = String
+type ObjType = String
 
 case class SfEnv(
     secAdm: RoleName,
