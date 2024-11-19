@@ -9,12 +9,12 @@ import munit.FunSuite
 
 class PropsTests extends FunSuite:
   test("Props - Simple"):
-    val testProps = Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(2), "BOOL_PROP" -> Bool(true))
+    val testProps = Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> NumInt(2), "BOOL_PROP" -> Bool(true))
     val expected  = "STR_PROP = STR_VAL NUM_PROP = 2 BOOL_PROP = TRUE"
     assert(clue(testProps.propsToStrSeq.mkString_(" ")) == expected)
 
   test("Props - LC"):
-    val testProps = Map("str_prop" -> Str("str_val"), "num_prop" -> Num(2), "bool_prop" -> Bool(true))
+    val testProps = Map("str_prop" -> Str("str_val"), "num_prop" -> NumInt(2), "bool_prop" -> Bool(true))
     val expected  = "STR_PROP = str_val NUM_PROP = 2 BOOL_PROP = TRUE"
     assert(clue(testProps.propsToStrSeq.mkString_(" ")) == expected)
 

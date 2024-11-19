@@ -1,11 +1,12 @@
 package sfenv
 package rules
+import org.virtuslab.yaml.*
 
-import io.circe.*
-
+import scala.language.implicitConversions
 import scala.util.*
 
 import envr.PropVal
+import rules.Util.given
 
 enum Namespace:
   case Schema(db: String, sch: String)
@@ -17,8 +18,10 @@ enum Namespace:
       case Database(db)    => PropVal.Str(n.db(db))
 
 object Namespace:
-  given Decoder[Namespace] = Decoder.decodeString.emapTry: x =>
+  def apply(x: String): Either[String, Namespace] =
     x.split("\\.") match
-      case Array(db, sch) => Success(Schema(db, sch))
-      case Array(wh)      => Success(Database(wh))
-      case _              => Failure(new Throwable(s"Invalid namespace '$x'; must be either <db> or <db>.<sch>"))
+      case Array(db, sch) => Right(Schema(db, sch))
+      case Array(wh)      => Right(Database(wh))
+      case _              => Left(s"Invalid namespace '$x'; must be either <db> or <db>.<sch>")
+
+  given YamlDecoder[Namespace] = YamlDecoder[String].mapError(Namespace.apply)

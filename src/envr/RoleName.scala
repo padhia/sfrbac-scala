@@ -1,7 +1,11 @@
 package sfenv
 package envr
 
-import io.circe.*
+import org.virtuslab.yaml.*
+
+import scala.language.implicitConversions
+
+import rules.Util.{*, given}
 
 enum RoleName:
   case Database(db: String, name: String)
@@ -18,15 +22,12 @@ enum RoleName:
   def role = s"$kind $roleName"
 
 object RoleName:
-  def apply(x: String) = x.split("\\.") match
-    case Array(db, role) => Some(Database(db, role))
-    case Array(role)     => Some(Account(role))
-    case _               => None
+  def apply(x: String): Either[String, RoleName] = x.split("\\.") match
+    case Array(db, role) => Right(Database(db, role))
+    case Array(role)     => Right(Account(role))
+    case _               => Left(s"$x is not valid RoleName")
 
-  given Decoder[RoleName] = summon[Decoder[String]].emap(x => apply(x).toRight(s"$x is an invalid role name"))
-
-  given KeyDecoder[RoleName] with
-    def apply(x: String) = RoleName.apply(x)
+  given YamlDecoder[RoleName] = YamlDecoder[String].mapError(RoleName.apply)
 
   extension (xs: List[RoleName])
     def regrant(ys: List[RoleName], grantee: UserName | RoleName) =

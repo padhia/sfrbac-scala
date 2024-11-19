@@ -1,9 +1,10 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 import envr.{ObjMeta, Props, PropVal}
+import envr.Props.*
 
 case class UserId(x: UserId.Aux, props: Props):
   export x.*
@@ -33,7 +34,11 @@ object UserId:
       default_role: Option[String],
       tags: Tags,
       comment: Comment
-  ) derives Decoder
+  ) derives YamlDecoder
 
-  given Decoder[UserId] with
-    def apply(c: HCursor) = summon[Decoder[Aux]].apply(c).map(UserId(_, Util.fromCursor[Aux](c)))
+  given YamlDecoder[UserId] with
+    def construct(node: Node)(implicit settings: LoadSettings) =
+      for
+        aux <- summon[YamlDecoder[Aux]].construct(node)
+        ps  <- Props.fromYaml[Aux].construct(node)
+      yield UserId(aux, ps)

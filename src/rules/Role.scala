@@ -1,14 +1,14 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 import envr.{Props, RoleName, SchWh}
 
 type SchWhRoles = Map[SchWh, String]
 
 case class Role(acc_roles: Option[SchWhRoles], env_acc_roles: Option[Map[EnvName, SchWhRoles]], tags: Tags, comment: Comment)
-    derives Decoder:
+    derives YamlDecoder:
 
   def resolve(name: String)(using n: NameResolver) =
     def mkRole(schWh: SchWh, acc: String) =

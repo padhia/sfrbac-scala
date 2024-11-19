@@ -1,12 +1,14 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 import envr.{ObjMeta, Props}
+import envr.Props.*
 
 case class Schema(x: Schema.Aux, props: Props):
   export x.*
+
   def resolve(dbName: String, schName: String)(using n: NameResolver) =
     envr.Schema(
       name = n.sch(dbName, schName),
@@ -23,7 +25,11 @@ object Schema:
       acc_roles: Option[AccRoles],
       tags: Tags,
       comment: Comment
-  ) derives Decoder
+  ) derives YamlDecoder
 
-  given Decoder[Schema] with
-    def apply(c: HCursor) = summon[Decoder[Aux]].apply(c).map(Schema(_, Util.fromCursor[Aux](c)))
+  given YamlDecoder[Schema] with
+    def construct(node: Node)(implicit settings: LoadSettings) =
+      for
+        aux <- YamlDecoder[Aux].construct(node)
+        ps  <- Props.fromYaml[Aux].construct(node)
+      yield Schema(aux, Props.empty)

@@ -6,7 +6,7 @@ import PropVal.*
 import munit.FunSuite
 
 class ObjMetaTests extends FunSuite:
-  val testProps = Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(2), "BOOL_PROP" -> Bool(true))
+  val testProps = Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> NumInt(2), "BOOL_PROP" -> Bool(true))
   val comment   = Some("A sample comment")
   val tags      = Map("tag1" -> "tag value 1", "tag2" -> "tag value 2")
   val sysAdm    = RoleName.Account("ENVADMIN")
@@ -45,8 +45,8 @@ class ObjMetaTests extends FunSuite:
     )
 
   test("alter - props"):
-    val oldOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(3), "BOOL_PROP" -> Bool(true)))
-    val newOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL2"), "NUM_PROP" -> Num(2)))
+    val oldOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> NumInt(3), "BOOL_PROP" -> Bool(true)))
+    val newOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL2"), "NUM_PROP" -> NumInt(2)))
     val expected = List(
       "ALTER SCHEMA IF EXISTS DB1.SCH1 SET STR_PROP = STR_VAL2, NUM_PROP = 2",
       "ALTER SCHEMA IF EXISTS DB1.SCH1 UNSET BOOL_PROP"
@@ -55,8 +55,8 @@ class ObjMetaTests extends FunSuite:
     assert(clue(sqls(newOM.alter("SCHEMA", "DB1.SCH1", oldOM))) == expected)
 
   test("alter - props"):
-    val oldOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> Num(3), "BOOL_PROP" -> Bool(true)))
-    val newOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL2"), "NUM_PROP" -> Num(2)))
+    val oldOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL"), "NUM_PROP" -> NumInt(3), "BOOL_PROP" -> Bool(true)))
+    val newOM = ObjMeta(Map("STR_PROP" -> Str("STR_VAL2"), "NUM_PROP" -> NumInt(2)))
     val expected = List(
       "ALTER SCHEMA IF EXISTS DB1.SCH1 SET STR_PROP = STR_VAL2, NUM_PROP = 2",
       "ALTER SCHEMA IF EXISTS DB1.SCH1 UNSET BOOL_PROP"

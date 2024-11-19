@@ -1,7 +1,12 @@
 package sfenv
 package envr
 
-import io.circe.*
+import org.virtuslab.yaml.*
+
+import scala.language.implicitConversions
+
+import rules.Util.*
+import rules.Util.given
 
 enum SchWh:
   case Schema(db: String, sch: String)
@@ -12,9 +17,10 @@ enum SchWh:
     case Warehouse(wh)   => wh
 
 object SchWh:
-  given KeyDecoder[SchWh] with
-    def apply(x: String) =
-      x.split("\\.") match
-        case Array(db, sch) => Some(Schema(db, sch))
-        case Array(wh)      => Some(Warehouse(wh))
-        case _              => None
+  def apply(x: String): Either[String, SchWh] =
+    x.split("\\.") match
+      case Array(db, sch) => Right(Schema(db, sch))
+      case Array(wh)      => Right(Warehouse(wh))
+      case _              => Left(s"$x is not valid Schema or Wahrehouse name")
+
+  given YamlDecoder[SchWh] = YamlDecoder[String].mapError(SchWh.apply)

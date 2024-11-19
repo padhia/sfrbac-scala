@@ -1,7 +1,7 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 case class Config(
     secadm: String,
@@ -13,4 +13,4 @@ case class Config(
     wacc_role: String,
     fn_role: String,
     app_id: String
-) derives Decoder
+) derives YamlDecoder

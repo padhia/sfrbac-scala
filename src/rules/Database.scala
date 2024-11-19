@@ -1,9 +1,10 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 import envr.{ObjMeta, Props}
+import envr.Props.*
 
 case class Database(x: Database.Aux, props: Props):
   export x.*
@@ -17,7 +18,12 @@ case class Database(x: Database.Aux, props: Props):
     )
 
 object Database:
-  case class Aux(transient: Option[Boolean], schemas: Option[Map[String, Schema]], tags: Tags, comment: Comment) derives Decoder
+  case class Aux(transient: Option[Boolean], schemas: Option[Map[String, Schema]], tags: Tags, comment: Comment)
+      derives YamlDecoder
 
-  given Decoder[Database] with
-    def apply(c: HCursor) = summon[Decoder[Aux]](c).map(Database(_, Util.fromCursor[Aux](c)))
+  given YamlDecoder[Database] with
+    def construct(node: Node)(implicit settings: LoadSettings) =
+      for
+        aux <- summon[YamlDecoder[Aux]].construct(node)
+        ps  <- Props.fromYaml[Aux].construct(node)
+      yield Database(aux, ps)

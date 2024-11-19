@@ -4,19 +4,18 @@ package test
 
 import fs2.*
 
+import org.virtuslab.yaml.*
+
 import munit.FunSuite
-import sfenv.Main.toRbac
 
 class SchemaTests extends FunSuite:
   import SchemaTests.*
 
   test("create"):
-    val ddl = rule1
-      .toRbac("DEV")
-      .map: rbac =>
-        val db               = rbac.databases(0)
-        given SqlObj[Schema] = Schema.sqlObj(db.name)
-        db.schemas(0).create.flatMap(_.stream(rbac.sysAdm)).toList
+    val ddl = rule1.map: rbac =>
+      val db               = rbac.databases(0)
+      given SqlObj[Schema] = Schema.sqlObj(db.name)
+      db.schemas(0).create.flatMap(_.stream(rbac.sysAdm)).toList
 
     val expected = List(
       "CREATE SCHEMA IF NOT EXISTS EDW_DEV.CUSTOMER WITH MANAGED ACCESS DATA_RETENTION_TIME_IN_DAYS = 10",
@@ -36,12 +35,10 @@ class SchemaTests extends FunSuite:
     assert(clue(ddl) == Right(expected))
 
   test("drop"):
-    val ddl = rule1
-      .toRbac("DEV")
-      .map: rbac =>
-        val db               = rbac.databases(0)
-        given SqlObj[Schema] = Schema.sqlObj(db.name)
-        db.schemas(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
+    val ddl = rule1.map: rbac =>
+      val db               = rbac.databases(0)
+      given SqlObj[Schema] = Schema.sqlObj(db.name)
+      db.schemas(0).unCreate.flatMap(_.stream(rbac.sysAdm)).toList
 
     val expected = List(
       "DROP DATABASE ROLE IF EXISTS EDW_DEV.CUSTOMER_R",
@@ -54,8 +51,8 @@ class SchemaTests extends FunSuite:
   test("alter"):
     val ddl =
       for
-        curr <- rule2.toRbac("DEV")
-        prev <- rule1.toRbac("DEV")
+        curr <- rule2
+        prev <- rule1
       yield {
         val db               = curr.databases(0)
         val currSch          = curr.databases(0).schemas(0)
@@ -83,7 +80,7 @@ object SchemaTests:
         |      CUSTOMER:
         |        managed: true
         |        data_retention_time_in_days: 10
-        |        acc_roles:
+        |        acc_roles: &default
         |          R:
         |            database: [usage]
         |            schema: [usage]
@@ -91,7 +88,7 @@ object SchemaTests:
         |          RW:
         |            role: [R]
         |            table: [insert, update, truncate, delete]
-        |""".stripMargin
+        |""".stripMargin.as[sfenv.rules.Rules].map(_.resolve("DEV"))
 
   val rule2 =
     s"""|$config
@@ -114,4 +111,4 @@ object SchemaTests:
         |          RW:
         |            role: [R]
         |            table: [insert, update, truncate, delete]
-        |""".stripMargin
+        |""".stripMargin.as[sfenv.rules.Rules].map(_.resolve("DEV"))

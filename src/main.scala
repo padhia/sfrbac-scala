@@ -1,8 +1,5 @@
 package sfenv
 
-import io.circe.{Decoder, Error}
-import io.circe.yaml.parser.parse
-
 import fs2.Stream
 import fs2.io.file.{Files, Path}
 import fs2.io.stdinUtf8
@@ -13,6 +10,8 @@ import cats.syntax.all.*
 
 import com.monovore.decline.*
 import com.monovore.decline.effect.*
+
+import org.virtuslab.yaml.*
 
 import java.io.IOException
 import java.nio.file.FileSystemException
@@ -26,13 +25,10 @@ object Main
       header = "Generate SQLs for declaratively managed Snowflake environments"
     ):
 
-  extension (s: String)
-    def toRbac(env: String): Either[Error, SfEnv] = parse(s).flatMap(Decoder[rules.Rules].decodeJson(_)).map(_.resolve(env))
-
-  def makeRbacPair(curr: String, prev: Option[String], env: EnvName = "DEV"): Either[Error, (SfEnv, Option[SfEnv])] =
+  def makeRbacPair(curr: String, prev: Option[String], env: EnvName = "DEV") =
     for
-      c <- curr.toRbac(env)
-      p <- prev.traverse(_.toRbac(env))
+      c <- curr.as[rules.Rules].map(_.resolve(env))
+      p <- prev.traverse(_.as[rules.Rules].map(_.resolve(env)))
     yield (c, p)
 
   def genEnvSqls(
@@ -60,18 +56,18 @@ object Main
 
   def genAdminSqls(env: EnvName, rulesText: Stream[IO, String]) =
     for
-      rules <- rulesText.compile.string
-      rbac  <- IO.fromEither(rules.toRbac(env))
-      _     <- IO.println(rbac.adminRoleSqls)
+      s <- rulesText.compile.string
+      r <- IO.fromEither(s.as[rules.Rules])
+      _ <- IO.println(r.resolve(env).adminRoleSqls)
     yield ExitCode.Success
 
   def handleErrors(x: IO[ExitCode]) =
     def showError(s: String) = Console[IO].errorln(s).as(ExitCode.Error)
 
     x.handleErrorWith {
-      case e: FileSystemException => showError(s"Error Opening File: ${e.getFile()}")         // input file couldn't be opened
-      case e: IOException         => showError(s"IO Error: ${e.getMessage()}")                // other generic IO errors
-      case e: Error               => showError(s"YAML/JSON Parsing Error: ${e.getMessage()}") // Circe errors
+      case e: FileSystemException => showError(s"Error Opening File: ${e.getFile()}") // input file couldn't be opened
+      case e: IOException         => showError(s"IO Error: ${e.getMessage()}")        // other generic IO errors
+      case e: YamlError           => showError(s"YAML/JSON Parsing Error: ${e.getMessage()}")
     }
 
   def main: Opts[IO[ExitCode]] =

@@ -1,9 +1,10 @@
 package sfenv
 package rules
 
-import io.circe.*
+import org.virtuslab.yaml.*
 
 import envr.{ObjMeta, Props}
+import envr.Props.*
 
 case class Warehouse(x: Warehouse.Aux, props: Props):
   export x.*
@@ -11,11 +12,15 @@ case class Warehouse(x: Warehouse.Aux, props: Props):
     envr.Warehouse(
       name = n.wh(whName),
       meta = ObjMeta(props, tags, comment),
-      accRoles = acc_roles.map(_.resolve(whName)).getOrElse(Map.empty)
+      accRoles = acc_roles.resolve(whName)
     )
 
 object Warehouse:
-  case class Aux(acc_roles: Option[AccRoles], tags: Tags, comment: Comment) derives Decoder
+  case class Aux(acc_roles: AccRoles, tags: Tags, comment: Comment) derives YamlDecoder
 
-  given Decoder[Warehouse] with
-    def apply(c: HCursor) = summon[Decoder[Aux]](c).map(Warehouse(_, Util.fromCursor[Aux](c)))
+  given YamlDecoder[Warehouse] with
+    def construct(node: Node)(implicit settings: LoadSettings) =
+      for
+        aux <- summon[YamlDecoder[Aux]].construct(node)
+        ps  <- Props.fromYaml[Aux].construct(node)
+      yield Warehouse(aux, ps)
