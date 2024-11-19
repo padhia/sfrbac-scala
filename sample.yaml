@@ -129,6 +129,10 @@ roles:
 
 users:
   JDOE:
+    default_role: DBA
+    default_warehouse: LOAD
+    default_namespace: EDW.CUSTOMER
+    default_secondary_roles: ('ALL')
     comment: John Doe
     roles:
       - DBA

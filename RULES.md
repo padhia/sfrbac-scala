@@ -209,6 +209,9 @@ A YAML/JSON object that describes Snowflake user IDs
 ```yaml
 users:
   JDOE:
+    default_role: DBA
+    default_warehouse: ETL
+    default_namespace: EDW.CUSTOMER
     comment: John Doe
     roles:
       - DBA
@@ -217,6 +220,7 @@ users:
 A *user* is an object mapping of name and its properties. Valid properties
 - `comment`: comment that'll be part of the generated DDL
 - `roles`: A YAML/JSON list containing names of the functional roles to be assigned to this user ID
+- references specified in the `default*` keys are expanded per regular patterns specified in `config` section
 
 ## `apps`
 Similar to `users` above except application IDs are created and are specific to an environment.

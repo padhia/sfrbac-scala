@@ -28,13 +28,21 @@ case class SfEnv(
     * @return
     *   Stream of DDL texts
     */
-  def genSqls[F[_]](prev: Option[SfEnv], onlyFuture: Boolean, drops: ProcessDrops): Stream[F, String] =
+  def genSqls[F[_]](prev: Option[SfEnv], onlyFuture: Boolean, drops: ProcessDrops, createUsers: Boolean): Stream[F, String] =
     def formatSql(s: String) =
       (if "^(CREATE|USE) ".r.findPrefixOf(s).isDefined then Stream.emit("") else Stream.empty) ++ Stream.emit(s + ";")
 
     val stmts = prev.map(p => this.alter(p)).getOrElse(this.create) // generate a stream of Sqls from Rbac
+    def isUserSql(sql: Sql) =
+      import Sql.*
+      sql match
+        case CreateObj(k, _, _) => k == "USER"
+        case DropObj(k, _, _)   => k == "USER"
+        case AlterObj(k, _, _)  => k == "USER"
+        case _                  => false
 
     stmts
+      .through(s => if createUsers then s else s.filter(!isUserSql(_)))
       .through(usingRole(secAdm, sysAdm))           // insert correct "use role" statements
       .flatMap(_.stream(sysAdm, onlyFuture, drops)) // convert each Sql into one or more DDL text
       .flatMap(formatSql)                           // add delimiter and optionally, a blank line for formatting
