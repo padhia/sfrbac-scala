@@ -27,3 +27,13 @@ class PropsTests extends FunSuite:
     val testProps = Map("SIZE" -> Str("2XLARGE"))
     val expected  = "SIZE = '2XLARGE'"
     assert(clue(testProps.propsToStrSeq.mkString_(" ")) == expected)
+
+  test("Props - brackets"):
+    val testProps = Map("ROLE" -> Str("('ALL')"))
+    val expected  = "ROLE = ('ALL')"
+    assert(clue(testProps.propsToStrSeq.mkString_(" ")) == expected)
+
+  test("Props - quoted"):
+    val testProps = Map("ROLE" -> Str("'ALL'"))
+    val expected  = "ROLE = 'ALL'"
+    assert(clue(testProps.propsToStrSeq.mkString_(" ")) == expected)

@@ -40,7 +40,8 @@ object Main
       curr: Stream[IO, String],
       prev: Option[Stream[IO, String]],
       onlyFuture: Boolean,
-      drops: ProcessDrops
+      drops: ProcessDrops,
+      createUsers: Boolean
   ): IO[ExitCode] =
     val rbacs: IO[(SfEnv, Option[SfEnv])] =
       for
@@ -51,7 +52,7 @@ object Main
 
     Stream
       .eval(rbacs)
-      .flatMap((curr, prev) => curr.genSqls(prev, onlyFuture, drops))
+      .flatMap((curr, prev) => curr.genSqls(prev, onlyFuture, drops, createUsers))
       .map(println)
       .compile
       .drain
@@ -96,8 +97,9 @@ object Main
     val drops = Opts
       .option[ProcessDrops]("drop", short = "D", help = "process DROP statements (default: non-local)")
       .withDefault(ProcessDrops.NonLocal)
+    val createUsers = Opts.flag("create-users", short = "u", help = "Generate CREATE USER statements (default off)").orFalse
 
     val adminCmd = (env, currRules, adminRoles).mapN((e, c, _) => genAdminSqls(e, c))
-    val envCmd   = (env, currRules, prevRules, onlyFuture, drops).mapN(genEnvSqls)
+    val envCmd   = (env, currRules, prevRules, onlyFuture, drops, createUsers).mapN(genEnvSqls)
 
     adminCmd.orElse(envCmd).map(handleErrors(_))

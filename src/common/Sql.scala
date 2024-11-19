@@ -17,6 +17,9 @@ enum Sql:
 
   def useRole(secAdm: RoleName, sysAdm: RoleName): Option[Sql.Use] =
     this match
+      case CreateObj(k, _, _) if k == "USER"                         => Some(Use(secAdm))
+      case AlterObj(k, _, _) if k == "USER"                          => Some(Use(secAdm))
+      case DropObj(k, _, _) if k == "USER"                           => Some(Use(secAdm))
       case _: CreateRole | _: DropRole | _: AlterRole | _: RoleGrant => Some(Use(secAdm))
       case _: CreateObj | _: DropObj | _: AlterObj | _: ObjGrant     => Some(Use(sysAdm))
       case _: Use                                                    => None
