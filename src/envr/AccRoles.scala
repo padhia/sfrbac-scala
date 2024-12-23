@@ -13,6 +13,10 @@ object AccRoles:
         Sql.CreateRole(role, ObjMeta.empty) +:
           Chain.fromIterableOnce(opm).flatMap((ot, gs) => gs.grant(ot, if ot == "DATABASE" then dbName else objName, role))
 
+      private def ungenRole(role: RoleName, opm: ObjGrants) =
+        Chain.fromIterableOnce(opm).flatMap((ot, gs) => gs.revoke(ot, if ot == "DATABASE" then dbName else objName, role)) :+ Sql
+          .DropRole(role)
+
       private def alterGrants(grantee: RoleName, opm: ObjGrants, old: ObjGrants): Chain[Sql] =
         opm
           .merge(old)
@@ -25,11 +29,9 @@ object AccRoles:
           )
 
       extension (ar: AccRoles)
-        override def create: Chain[Sql] =
-          Chain.fromIterableOnce(ar).flatMap(genRole(_, _))
+        override def create: Chain[Sql] = Chain.fromIterableOnce(ar).flatMap(genRole(_, _))
 
-        override def unCreate: Chain[Sql] =
-          Chain.fromIterableOnce(ar.keys).map(r => Sql.DropRole(r))
+        override def unCreate: Chain[Sql] = Chain.fromIterableOnce(ar).flatMap(ungenRole(_, _))
 
         override def alter(old: AccRoles): Chain[Sql] =
           ar.merge(old)

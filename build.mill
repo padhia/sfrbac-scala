@@ -7,11 +7,11 @@ object Ver {
   val circeYaml   = "0.16.0"
   val decline     = "2.4.1"
   val fs2         = "3.11.0"
-  val munit       = "1.0.2"
+  val munit       = "1.0.3"
 }
 
 object `package` extends RootModule with ScalaModule with PublishModule {
-  def scalaVersion   = "3.5.1"
+  def scalaVersion   = "3.6.2"
   def publishVersion = "0.1.1"
   def scalacOptions  = Seq("-deprecation", "-Wunused:all", "-release", "11")
   def artifactName   = "sfenv"

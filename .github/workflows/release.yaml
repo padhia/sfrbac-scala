@@ -13,22 +13,20 @@ jobs:
       contents: write
     steps:
 
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - uses: jodersky/setup-mill@master
       with:
-        mill-version: 0.11.6
+        mill-version: 0.12.3
 
-    - name: build assembly
-      run: mill assembly
+    - run: mill assembly
 
     - name: rename assembly
       run: mv out/assembly.dest/out.jar out/assembly.dest/sfenv
 
     - name: Upload assembly
       id: upload-release-asset
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:

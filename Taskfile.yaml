@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  build:
+    aliases: [b]
+    cmds:
+      - mill launcher
+      - ln -fs "$PWD/out/launcher.dest/run" "$HOME/.local/bin/${PWD##*/}"
+
+  update:
+    aliases: [u]
+    cmds:
+      - mill mill.scalalib.Dependency/showUpdates
+
+  test:
+    aliases: [t]
+    cmds:
+      - mill test
+
+  testonly:
+    aliases: [to]
+    cmds:
+      - mill test.testOnly
+
+  sample:
+    aliases: [rr]
+    cmds:
+      - mill run ./sample.yaml | bat --wrap=never -l sql
+
+  clean:
+    cmds:
+      - rm -rf .bloop/ .metals/ out/

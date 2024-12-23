@@ -18,7 +18,9 @@ object Role:
         import role.*
         Sql.CreateRole(name, meta) +: Chain.fromSeq(accRoles).map(ar => Sql.RoleGrant(ar, name))
 
-      override def unCreate = Chain(Sql.DropObj("ROLE", role.name.roleName))
+      override def unCreate =
+        import role.*
+        Chain.fromSeq(accRoles).map(ar => Sql.RoleGrant(ar, name, true)) :+ Sql.DropRole(name)
 
       override def alter(old: Role): Chain[Sql] =
         Chain.fromSeq(role.accRoles).regrant(Chain.fromSeq(old.accRoles), role.name) ++

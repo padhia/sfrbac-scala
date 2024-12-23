@@ -64,7 +64,6 @@ case class SfEnv(
     def formatSql(s: String) =
       if "^(CREATE|USE) ".r.findPrefixOf(s).isDefined then List("", s + ";") else List(s + ";")
 
-    val stmts = prev.map(p => this.alter(p)).getOrElse(this.create) // generate a stream of Sqls from Rbac
     def isUserSql(sql: Sql) =
       import Sql.*
       sql match
@@ -88,13 +87,26 @@ case class SfEnv(
         case AlterRole(r, _)  => r.isAccountRole
         case _                => false
 
-    stmts
-      .through(s => if createUsers then s else s.filter(!isUserSql(_)))
-      .through(s => if createRoles then s else s.filter(!isRoleSql(_)))
+    val stmts =
+      prev
+        .map(p => this.alter(p))
+        .getOrElse(this.create) // generate a stream of Sqls from Rbac
+        .through(s => if createUsers then s else s.filter(!isUserSql(_)))
+        .through(s => if createRoles then s else s.filter(!isRoleSql(_)))
+
+    def isDrop(x: Sql) =
+      x match
+        case Sql.DropObj(_, _, _) => true
+        case Sql.DropRole(_)      => true
+        case _                    => false
+
+    val notDropStmts = stmts.filterNot(isDrop)
+    val dropStmts    = stmts.filter(isDrop)
+
+    (notDropStmts ++ dropStmts)
       .through(Sql.usingRole)
-      .flatMap((role, sql) =>
+      .flatMap: (role, sql) =>
         Stream.emits(role.toList).map(_.toSql(secAdm, sysAdm)) ++ Stream.emits(sql.texts(sysAdm, onlyFutures, drops).toList)
-      )
       .flatMap(x => Stream.emits(formatSql(x))) // add delimiter and optionally, a blank line for formatting
       .dropWhile(_ == "")                       // skip the initial empty line
 

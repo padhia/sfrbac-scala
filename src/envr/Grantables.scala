@@ -10,7 +10,7 @@ enum Grantables:
   def permit[F[_]](revoke: Boolean)(of: ObjType, to: String, grantee: RoleName): Chain[Sql] =
     this match
       case Roles(rs)      => Chain.fromSeq(rs).map(r => Sql.RoleGrant(r, grantee, revoke))
-      case Privileges(ps) => Chain(Sql.ObjGrant(of, to, grantee, ps, revoke))
+      case Privileges(ps) => if ps.isEmpty then Chain.empty else Chain(Sql.ObjGrant(of, to, grantee, ps, revoke))
 
   def grant[F[_]]  = permit[F](false)
   def revoke[F[_]] = permit[F](true)
